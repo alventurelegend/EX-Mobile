@@ -119,7 +119,7 @@
                             }
                             .build()
 
-                        val url = "https://webexam.hirangga.my.id/api/exam/$kode"
+                        val url = "https://api.tkjsmkn2sragen.my.id/api/exam/$kode"
 
                         /*Membuat Request Jika tidak ada Method yang ditulis artiny Default GET*/
                         val request = Request.Builder()
