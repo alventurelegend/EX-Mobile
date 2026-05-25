@@ -1,10 +1,13 @@
 package twosra.it.exmob_revisi
 
+import android.Manifest
 import android.app.ActivityManager
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +20,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -24,13 +28,27 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import okio.Lock
 
+private lateinit var bookSession: SharedPreferences
+private lateinit var editor: SharedPreferences.Editor
+
 class AssigmentForm : AppCompatActivity() {
 
     var dialogShow = false
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        //===================DISABLE/HIDE OVERLAY=======================//
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.setHideOverlayWindows(true)
+        }
+
+        //=========================SESSION ASSIGMENT====================//
+        bookSession = getSharedPreferences("session", Context.MODE_PRIVATE)
+        editor = bookSession.edit()
 
         startLockTask()
         handler.postDelayed({ checkLocked()}, 5000)
@@ -68,6 +86,7 @@ class AssigmentForm : AppCompatActivity() {
                         .setTitle("PERINGATAN")
                         .setMessage("Jika anda keluar anda tidak dapat mengakses Link Ujian kembali, Pastikan anda sudah menyelesaikan soal!")
                         .setPositiveButton("Oke") { dialog, which ->
+                            removeSession()
                             val intent = Intent(this@AssigmentForm, scan_page::class.java)
                             startActivity(intent)
                             stopLockTask()
@@ -79,7 +98,19 @@ class AssigmentForm : AppCompatActivity() {
                     builder.create()
                 } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
             }
+
+            fun removeSession() {
+                val kodeSaatIni = bookSession.getString("active", null)
+
+                if(kodeSaatIni != null) {
+                    editor.putBoolean("clear_$kodeSaatIni", true)
+                    editor.remove("clear")
+                    editor.apply()
+                }
+            }
         }
+
+
 
         /*BUTTON KELUAR UJIAN*/
         btnOut.setOnClickListener {

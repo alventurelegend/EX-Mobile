@@ -3,8 +3,10 @@
             import android.app.ActivityManager
             import android.content.Context
             import android.content.Intent
+            import android.content.SharedPreferences
             import android.media.MediaDataSource
             import android.net.Uri
+            import android.os.Build
             import android.os.Bundle
             import android.os.Handler
             import android.os.Looper
@@ -27,39 +29,47 @@
             import com.google.zxing.MultiFormatReader
             import com.google.zxing.RGBLuminanceSource
             import com.google.zxing.common.HybridBinarizer
+            import android.provider.Settings
+            import com.google.android.material.dialog.MaterialAlertDialogBuilder
+
+            private lateinit var bookSession: SharedPreferences
+            private lateinit var editor: SharedPreferences.Editor
 
             class scan_page : AppCompatActivity() {
+
+                private lateinit var kodeUjian: EditText
+                private lateinit var btnScan: Button
+                private lateinit var btnStart: Button
+                private lateinit var btnImage: Button
 
                 override fun onCreate(savedInstanceState: Bundle?) {
                     super.onCreate(savedInstanceState)
                     enableEdgeToEdge()
                     setContentView(R.layout.scan_page)
 
-                    /*1. =====================MENDEKLARASIKAN EDITEXT & BUTTON====================*/
-                    val _KodeUjian = findViewById<EditText>(R.id.txtKodeUjian)
-                    val _btnScan = findViewById<Button>(R.id.btnScan)
-                    val _btnStart = findViewById<Button>(R.id.btnCari)
-                    val btnImage = findViewById<Button>(R.id.btnPickImage)
+                    //=========================SESSION ASSIGMENT====================//
+                    bookSession = getSharedPreferences("session", Context.MODE_PRIVATE)
+                    editor = bookSession.edit()
 
-                    /*2. =======================SCANNER AREA==================*/
-                    /*a. FUNGSI JIKA SCAN SELESAI*/
-                    fun SelesaiScan(result: String?) {
-                        if (!result.isNullOrEmpty()) {
-                            _KodeUjian.setText(result)
-                            Toast.makeText(this, "Berhasil di scan", Toast.LENGTH_SHORT).show()
-                        }
+                    //===================DISABLE/HIDE OVERLAY=======================//
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        window.setHideOverlayWindows(true)
                     }
 
-                    /*b. MENDKLARASIKAN LAUNCHER */
+                    //=====================DAFTAR VARIABEL===========================//
+                    kodeUjian = findViewById(R.id.txtKodeUjian)
+                    btnScan = findViewById(R.id.btnScan)
+                    btnStart = findViewById(R.id.btnCari)
+                    btnImage = findViewById(R.id.btnPickImage)
+
+                    /*===================BUTTON SCAN BARCODE CLICK===================*/
                     val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
                         if (result.contents != null) {
                             SelesaiScan(result.contents)
                         }
                     }
-                    /* =======================SCANNER AREA==================*/
 
-                    /*MENGATUR KETIKA BUTTON DI CLICK*/
-                    _btnScan.setOnClickListener {
+                    btnScan.setOnClickListener {
                         val option = ScanOptions()
                         option.setPrompt("Scan Barcode/QR")
                         option.setBeepEnabled(true)
@@ -95,19 +105,47 @@
                     btnImage.setOnClickListener {
                         PickImage.launch("image/*")
                     }
-                    /* ==================JIKA MEMILIH DI GALERY==============*/
 
-                    _btnStart.setOnClickListener {
-                        val tokenUjian = _KodeUjian.text.toString().trim()
 
-                        if (tokenUjian.isNotEmpty()) {
-                            getExam(tokenUjian)
-                        } else {
-                            Toast.makeText(this@scan_page, "Masukan Kode Ujian Terlebih dahulu", Toast.LENGTH_SHORT).show()
-                        }
+                    /* ==================START EXAM BUTTON==============*/
+                    btnStart.setOnClickListener {
+                        checkingToken()
                     }
                 }
 
+
+                    fun checkingToken() {
+                        val tokenUjian = kodeUjian.text.toString().trim()
+
+                        if(tokenUjian.isEmpty()) {
+                            Toast.makeText(this@scan_page, "Masukan Kode Ujian Terlebih dahulu", Toast.LENGTH_SHORT).show()
+                            return
+                        }
+
+                        val validateToken = bookSession.getBoolean("clear_$tokenUjian", false)
+                        if (validateToken) {
+                            MaterialAlertDialogBuilder(this)
+                                .setTitle("Peringatan!")
+                                .setMessage("Token Ujian Sudah Digunakan.")
+                                .setCancelable(false)
+                                .setPositiveButton("OK") {dialog, which ->
+                                    dialog.dismiss()
+                                }.show()
+                        } else {
+                            editor.putString("active", tokenUjian)
+                            editor.apply()
+                            getExam(tokenUjian)
+                        }
+                    }
+
+
+                    /*=======================SCANNER AREA==================*/
+                    fun SelesaiScan(result: String?) {
+                        if (!result.isNullOrEmpty()) {
+                            kodeUjian.setText(result)
+                            Toast.makeText(this, "Berhasil di scan", Toast.LENGTH_SHORT).show()
+                        }
+                    }
 
                     /* =======================HTTP REQ AREA==================*/
                     fun getExam(kode: String) {

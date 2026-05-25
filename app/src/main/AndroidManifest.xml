@@ -4,7 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS"/>
+    
+    
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -23,9 +26,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Exmob_revisi"
         android:usesCleartextTraffic="true">
-        <activity
-            android:name=".TestImage"
-            android:exported="false" />
+
         <activity
             android:name=".AssigmentForm"
             android:exported="false" /> <!-- MEMAKSA AGAR SCANNER POTRAIT -->
@@ -46,6 +47,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".FloatingDetect"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="false">
+
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config"/>
+        </service>
     </application>
 
 </manifest>
