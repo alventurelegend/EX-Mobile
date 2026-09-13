@@ -1,54 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".scan_page"
-    android:layout_marginHorizontal="30dp"
     >
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="30dp"
+       />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideEnd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="30dp"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideAtas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="90dp"
+        />
+
 
     <TextView
         android:id="@+id/header1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Exmob"
+        android:layout_marginBottom="4dp"
         android:fontFamily="@font/pacifico"
-        android:textSize="30sp"
+        android:text="Exmob"
         android:textColor="#54DAFF"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.3"
-        />
+        android:textSize="30sp"
+
+        app:layout_constraintBottom_toTopOf="@+id/header2"
+        app:layout_constraintEnd_toStartOf="@+id/guideEnd"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/guideStart"
+        app:layout_constraintTop_toTopOf="@+id/guideAtas" />
 
     <TextView
         android:id="@+id/header2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="112dp"
         android:text="Exam Mobile"
         android:textColor="#00095B"
+
         android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/txtKodeUjian"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header1" />
-    
-    <EditText
-        android:id="@+id/txtKodeUjian"
-        android:layout_width="0dp"
-        android:layout_height="40dp"
-        android:hint="Masukan Kode Ujian"
-        android:layout_marginTop="20dp"
-        android:textAlignment="center"
-        android:background="@drawable/rounded_edittext"
-        app:layout_constraintTop_toBottomOf="@+id/header2"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnCari"
-        android:layout_marginEnd="5dp"
-        />
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCari"
@@ -57,51 +70,70 @@
         android:backgroundTint="#005494"
 
         app:icon="@drawable/outline_arrow_right_alt_24"
-        app:iconTint="#FFFFFF"
-        app:iconPadding="0dp"
         app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconTint="#FFFFFF"
 
-        app:layout_constraintTop_toTopOf="@id/txtKodeUjian"
         app:layout_constraintBottom_toBottomOf="@id/txtKodeUjian"
-        app:layout_constraintEnd_toEndOf="parent"/>
-        />
-
-    <TextView
-        android:id="@+id/atau"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Atau"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtKodeUjian"
-        />
+        app:layout_constraintEnd_toStartOf="@+id/guideEnd"
+        app:layout_constraintTop_toTopOf="@id/txtKodeUjian" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnScan"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="SCAN KODE QR"
         android:backgroundTint="#005494"
+        android:text="SCAN KODE QR"
         app:icon="@drawable/baseline_qr_code_scanner_24"
-        app:iconTint="#FFFFFF"
-        app:iconPadding="4dp"
         app:iconGravity="textStart"
-        app:layout_constraintTop_toBottomOf="@id/atau"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:iconPadding="4dp"
+        app:iconTint="#FFFFFF"
+        app:layout_constraintBottom_toTopOf="@+id/btnPickImage"
+        app:layout_constraintEnd_toStartOf="@+id/guideEnd"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideStart" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnPickImage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="PILIH GAMBAR DARI GALERI"
+        android:layout_marginTop="4dp"
         android:backgroundTint="#005494"
+        android:text="PILIH GAMBAR DARI GALERI"
         app:icon="@drawable/image"
-        app:iconTint="#FFFFFF"
-        app:iconPadding="4dp"
         app:iconGravity="textStart"
-        app:layout_constraintTop_toBottomOf="@id/btnScan"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:iconPadding="4dp"
+
+        app:iconTint="#FFFFFF"
+        app:layout_constraintEnd_toStartOf="@+id/guideEnd"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/guideStart"
+        app:layout_constraintTop_toBottomOf="@id/btnScan" />
+
+    <TextView
+        android:id="@+id/atau"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:layout_marginBottom="12dp"
+        android:text="Atau"
+        app:layout_constraintBottom_toTopOf="@+id/btnScan"
+        app:layout_constraintEnd_toStartOf="@+id/guideEnd"
+        app:layout_constraintHorizontal_bias="0.495"
+        app:layout_constraintStart_toStartOf="@+id/guideStart" />
+
+    <EditText
+        android:id="@+id/txtKodeUjian"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/rounded_edittext"
+        android:hint="Masukan Kode Ujian"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/atau"
+        app:layout_constraintEnd_toStartOf="@+id/btnCari"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/guideStart" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

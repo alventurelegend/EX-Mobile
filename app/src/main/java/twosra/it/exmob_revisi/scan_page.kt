@@ -41,7 +41,26 @@ class scan_page : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.scan_page)
+        setContentView(R.layout.activity_landing_page)
+
+        //====================LAYOUT MENU ANIMATION=====================//
+        val layoutForm = findViewById<android.widget.LinearLayout>(
+            R.id.layout_form
+        )
+
+        //POSISI & KONDISI AWAL
+        layoutForm.alpha = 0f
+        layoutForm.translationY = 300f
+
+        //POSISI NAIK AKHIR
+        layoutForm.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(700)
+            .setInterpolator (
+                android.view.animation.DecelerateInterpolator()
+            )
+            .start()
 
         //=========================SESSION ASSIGMENT====================//
         bookSession = getSharedPreferences("session", MODE_PRIVATE)
@@ -155,7 +174,7 @@ class scan_page : AppCompatActivity() {
             }
             .build()
 
-        val url = "https://api.tkjsmkn2sragen.my.id/api/exam/$kode"
+        val url = "https://api-exam.altech.dpdns.org/api/exam/$kode"
 
         /*Membuat Request Jika tidak ada Method yang ditulis artiny Default GET*/
         val request = Request.Builder()

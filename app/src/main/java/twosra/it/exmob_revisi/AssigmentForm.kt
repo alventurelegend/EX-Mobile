@@ -71,20 +71,49 @@ class AssigmentForm : AppCompatActivity() {
         txtGuru = findViewById<TextView>(R.id.textGuru)
         restart = findViewById<Button>(R.id.btnRestart)
 
-        /*================== AMBIL WEB VIEW ========================*/
+        /*================== AMBIL WEB VIEW & SETTINGS WEB VIEW ========================*/
         webView = findViewById<WebView>(R.id.formView)
+        webView.settings.apply {
+            supportZoom()
+            builtInZoomControls = true
+            displayZoomControls = false
+        }
 
-        //=====================MUNCULKAN WEB VIEW==================//
-        loadWeb()
+        //=====DIALOG APAKAH BERSEDIA UNTUK LOCK TASK MODE APK===========//
+        class AllowLock : DialogFragment() {
+            override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+                isCancelable = false
 
+                return activity?.let {
+                    val builder = AlertDialog.Builder(it)
+                    builder.setTitle("MOHON DIBACA!!")
+                        .setMessage("Anda harus mengijinkan Mode Kunci untuk melanjutkan ujian")
+                        .setPositiveButton("Ijinkan") { dialog, which ->
+                            // MUNCULKAN UJIAN
+                            loadWeb()
+                            // PENGECEKAN LOCK TASK
+                            handler.postDelayed({ checkLocked() }, 1000)
+                            // USER MELANJUTKAN UJIAN
 
+                        }.setNegativeButton("Tidak") { dialog, which ->
+                            val intent = Intent(this@AssigmentForm, scan_page::class.java)
+                            startActivity(intent)
+                            stopLockTask()
+                            finish()
+                        }
+                    builder.create()
+                } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
+            }
+        }
+
+        //LOADER SAAT UJIAN TERBUKA
+        startLockTask()
+        AllowLock().show(supportFragmentManager, "AllowLockDialog")
+        updateBatteryOnly()
 
         //===================Inisialisasi Manager Jaringan & Aktifkan Deteksi Internet Real-Time====================//
         connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         setupRealtimeNetworkCallback()
-
-        // Isi status baterai pertama kali saat activity dimuat
-        updateBatteryOnly()
 
         //=================== DISABLE/HIDE OVERLAY =======================//
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -95,13 +124,11 @@ class AssigmentForm : AppCompatActivity() {
         bookSession = getSharedPreferences("session", MODE_PRIVATE)
         editor = bookSession.edit()
 
-        startLockTask()
-        handler.postDelayed({ checkLocked() }, 5000)
 
         //==================BUAT HALAMAN RAHASIA / SECURE SEHINGGA TIDAK DAPAT SS / REKAM LAYAR==============//
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
-        )
+//        window.setFlags(
+//            WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
+//        )
 
         /*================ INISIALISASI BUTTON & VARIABEL ===============*/
         val btnOut = findViewById<Button>(R.id.btnOut)
@@ -109,6 +136,7 @@ class AssigmentForm : AppCompatActivity() {
         /*================== MEMATIKAN POPUP COPY/SALIN =================*/
         webView.setOnLongClickListener { true }
         webView.isLongClickable = false
+
 
         /*==================== DIALOG FUNCTION =========================*/
         class OutAssigment : DialogFragment() {
@@ -129,6 +157,7 @@ class AssigmentForm : AppCompatActivity() {
                     builder.create()
                 } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
             }
+
 
             fun removeSession() {
                 val kodeSaatIni = bookSession.getString("active", null)
