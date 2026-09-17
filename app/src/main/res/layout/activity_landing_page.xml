@@ -21,6 +21,7 @@
             android:src="@drawable/exmob_icon"/>
     </LinearLayout>
 
+<!--    SEMENTARA LAYOUT WEIGHT DI ISI 2 DULU HARUSNYA 1.3-->
     <LinearLayout
         android:id="@+id/layout_form"
         android:padding="20dp"

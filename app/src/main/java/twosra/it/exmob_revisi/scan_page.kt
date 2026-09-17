@@ -159,9 +159,11 @@ class scan_page : AppCompatActivity() {
 
     /*=======================SCANNER AREA==================*/
     fun SelesaiScan(result: String?) {
-        if (!result.isNullOrEmpty()) {
+        if (!result.isNullOrEmpty() && result.length <= 15) {
             kodeUjian.setText(result)
             Toast.makeText(this, "Berhasil di scan", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Gunakan Kode resmi yang tidak lebih dari 15 Karakter", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -190,7 +192,7 @@ class scan_page : AppCompatActivity() {
                 runOnUiThread {
                     Toast.makeText(
                         this@scan_page,
-                        "Internal Server Error silakan coba lagi!",
+                        "Internal Server Error silakan coba lagi!, dan pastikan Internet hidup",
                         Toast.LENGTH_SHORT
                     ).show()
                 }

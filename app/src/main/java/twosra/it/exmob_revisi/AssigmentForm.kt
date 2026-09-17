@@ -1,12 +1,15 @@
 package twosra.it.exmob_revisi
 
+import android.provider.Settings
+import android.util.Log
+import android.net.Network
+import android.net.ConnectivityManager
 import android.app.ActivityManager
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
+import android.graphics.Color
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -26,18 +29,105 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 private lateinit var bookSession: SharedPreferences
 private lateinit var editor: SharedPreferences.Editor
 
+//==================== PENGECEKAN JARINGAN INTERNET ====================//
 class AssigmentForm : AppCompatActivity() {
 
     var dialogShow = false
-    var isWifiDialogOpen = false
 
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var networkCallback: ConnectivityManager.NetworkCallback
+    private lateinit var txtInternet: TextView
+
+    //KE LANDIG PAGE AGAR TIDAK BUG TAMPILAN
+    private fun keluarKeLandingPage() {
+
+        stopLockTask()
+
+        val intent = Intent(this, landing_page::class.java)
+
+        intent.flags =
+            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+        startActivity(intent)
+
+        finish()
+    }
+
+    //MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI
+    private fun bukaPengaturanWifi() {
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Peringatan Internet Anda Mati!")
+            .setMessage(
+                "Tenang, progres ujian Anda disimpan. " +
+                        "Silakan hubungkan kembali perangkat dengan internet."
+            )
+            .setCancelable(false)
+            .setPositiveButton("OK") { dialog, _ ->
+
+                dialog.dismiss()
+
+                keluarKeLandingPage()
+
+                val intent =
+                    Intent(Settings.ACTION_WIFI_SETTINGS)
+
+                startActivity(intent)
+            }
+            .show()
+    }
+
+    // KETIKA JARINGAN TERSEDIA & TIDAK
+    private fun setupNetworkDetector() {
+
+        txtInternet = findViewById(R.id.txtInternetStatus)
+
+        networkCallback =
+            object : ConnectivityManager.NetworkCallback() {
+
+                override fun onAvailable(network: Network) {
+                    Log.d(
+                        "NETWORK_DETECTOR",
+                        "JARINGAN TERSEDIA - ${System.currentTimeMillis()}"
+                    )
+                    runOnUiThread {
+                        txtInternet.text = "INTERNET HIDUP"
+                        txtInternet.setTextColor(
+                            Color.parseColor("#55ff00")
+                        )
+                    }
+                }
+
+                override fun onLost(network: Network) {
+                    Log.d(
+                        "NETWORK_DETECTOR",
+                        "JARINGAN HILANG - ${System.currentTimeMillis()}"
+                    )
+                    runOnUiThread {
+                        txtInternet.text = "INTERNET MATI"
+                        txtInternet.setTextColor(
+                            Color.parseColor("#FF1E00")
+                        )
+
+                        bukaPengaturanWifi()
+                    }
+                }
+            }
+
+
+        connectivityManager.registerDefaultNetworkCallback(
+            networkCallback
+        )
+    }
+
+
     private lateinit var txtMapel: TextView
     private lateinit var txtGuru: TextView
     private lateinit var webView: WebView
@@ -61,6 +151,13 @@ class AssigmentForm : AppCompatActivity() {
         setContentView(R.layout.assigment_form)
         enableEdgeToEdge()
 
+        //============MENDAFTARKAN CONECTIVITY MANAGER===================//
+        connectivityManager =
+            getSystemService(CONNECTIVITY_SERVICE)
+                    as ConnectivityManager
+
+        setupNetworkDetector()
+
         /*============ AMBIL LINK DARI SCAN_PAGE ========================*/
         url = intent.getStringExtra("URL")
         guruName = intent.getStringExtra("GURU")
@@ -78,6 +175,7 @@ class AssigmentForm : AppCompatActivity() {
             builtInZoomControls = true
             displayZoomControls = false
         }
+
 
         //=====DIALOG APAKAH BERSEDIA UNTUK LOCK TASK MODE APK===========//
         class AllowLock : DialogFragment() {
@@ -111,10 +209,6 @@ class AssigmentForm : AppCompatActivity() {
         AllowLock().show(supportFragmentManager, "AllowLockDialog")
         updateBatteryOnly()
 
-        //===================Inisialisasi Manager Jaringan & Aktifkan Deteksi Internet Real-Time====================//
-        connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-        setupRealtimeNetworkCallback()
-
         //=================== DISABLE/HIDE OVERLAY =======================//
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             window.setHideOverlayWindows(true)
@@ -126,9 +220,9 @@ class AssigmentForm : AppCompatActivity() {
 
 
         //==================BUAT HALAMAN RAHASIA / SECURE SEHINGGA TIDAK DAPAT SS / REKAM LAYAR==============//
-//        window.setFlags(
-//            WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
-//        )
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
+        )
 
         /*================ INISIALISASI BUTTON & VARIABEL ===============*/
         val btnOut = findViewById<Button>(R.id.btnOut)
@@ -136,6 +230,7 @@ class AssigmentForm : AppCompatActivity() {
         /*================== MEMATIKAN POPUP COPY/SALIN =================*/
         webView.setOnLongClickListener { true }
         webView.isLongClickable = false
+
 
 
         /*==================== DIALOG FUNCTION =========================*/
@@ -188,6 +283,8 @@ class AssigmentForm : AppCompatActivity() {
         })
     }
 
+
+
     //==========LOADED WEB VIEW FORM=========//
     fun loadWeb() {
         url?.let { urlUjian ->
@@ -203,105 +300,6 @@ class AssigmentForm : AppCompatActivity() {
     }
 
 
-    //================== DETEKSI INTERNET INSTAN DENGAN CALLBACK ==================//
-    private fun setupRealtimeNetworkCallback() {
-
-        networkCallback = object : ConnectivityManager.NetworkCallback() {
-
-            // Dipanggil saat network berubah
-            override fun onCapabilitiesChanged(
-                network: android.net.Network,
-                networkCapabilities: NetworkCapabilities
-            ) {
-                super.onCapabilitiesChanged(network, networkCapabilities)
-
-                val isInternetWorking =
-                    networkCapabilities.hasCapability(
-                        NetworkCapabilities.NET_CAPABILITY_VALIDATED
-                    )
-
-                runOnUiThread {
-
-                    val txtInternet =
-                        findViewById<TextView>(R.id.txtInternetStatus)
-
-                    if (isInternetWorking) {
-                        isWifiDialogOpen = false
-
-                        if (txtInternet != null) {
-                            txtInternet.text = "Internet: Terhubung"
-                            txtInternet.setTextColor(android.graphics.Color.GREEN)
-                            txtInternet.setOnClickListener(null)
-                        }
-
-                    } else {
-                        if (txtInternet != null) {
-                            txtInternet.text = "TIDAK ADA INTERNET"
-                            txtInternet.setTextColor(android.graphics.Color.RED)
-
-                            // Klik manual buka WiFi
-                            txtInternet.setOnClickListener {
-                                bukaPengaturanWifi()
-                            }
-
-                            // Dialog hanya muncul sekali
-                            if (!isWifiDialogOpen) {
-
-                                isWifiDialogOpen = true
-
-                                AlertDialog.Builder(this@AssigmentForm)
-                                    .setTitle("Koneksi Terputus")
-                                    .setMessage("Internet Anda mati di tengah ujian. Silakan aktifkan koneksi kembali.")
-                                    .setCancelable(false)
-                                    .setPositiveButton("Atur Wi-Fi") { dialog, _ ->
-
-                                        dialog.dismiss()
-
-                                        bukaPengaturanWifi()
-
-                                        // Pindah halaman
-                                        val intent =
-                                            Intent(this@AssigmentForm, scan_page::class.java)
-
-                                        startActivity(intent)
-                                    }
-                                    .show()
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Jika network benar-benar hilang
-            override fun onLost(network: android.net.Network) {
-                super.onLost(network)
-
-                runOnUiThread {
-
-                    val txtInternet =
-                        findViewById<TextView>(R.id.txtInternetStatus)
-
-                    if (txtInternet != null) {
-
-                        txtInternet.text = "TIDAK ADA INTERNET"
-                        txtInternet.setTextColor(android.graphics.Color.RED)
-
-                        txtInternet.setOnClickListener {
-                            bukaPengaturanWifi()
-                        }
-                    }
-                }
-            }
-        }
-
-        // Registrasi listener
-        val request =
-            android.net.NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .build()
-
-        connectivityManager.registerNetworkCallback(request, networkCallback)
-    }
 
     //======================= FUNGSI KHUSUS UPDATE BATERAI =======================//
     fun updateBatteryOnly() {
@@ -310,20 +308,6 @@ class AssigmentForm : AppCompatActivity() {
             val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
             val batLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
             txtBattery.text = "Baterai: $batLevel%"
-        }
-    }
-
-    fun bukaPengaturanWifi() {
-        try {
-            // Mematikan Lock Task sebelum membuka halaman settings luar agar tidak crash/blokir
-            stopLockTask()
-
-            val intent = Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Gagal membuka pengaturan Wi-Fi otomatis.", Toast.LENGTH_SHORT)
-                .show()
         }
     }
 
@@ -373,9 +357,17 @@ class AssigmentForm : AppCompatActivity() {
 
     /* LIFECYCLE ONDESTROY - Menghapus callback agar tidak bocor (Memory Leak) */
     override fun onDestroy() {
-        super.onDestroy()
-        if (::connectivityManager.isInitialized && ::networkCallback.isInitialized) {
-            connectivityManager.unregisterNetworkCallback(networkCallback)
+
+        handler.removeCallbacksAndMessages(null)
+
+        if (::connectivityManager.isInitialized &&
+            ::networkCallback.isInitialized
+        ) {
+            connectivityManager.unregisterNetworkCallback(
+                networkCallback
+            )
         }
+
+        super.onDestroy()
     }
 }

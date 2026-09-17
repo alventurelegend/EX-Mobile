@@ -2,13 +2,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Network -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <!-- Storage Android <= 12 -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- Media Android 13+ -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- Hide overlay -->
     <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -25,34 +36,40 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Exmob_revisi"
         android:usesCleartextTraffic="true">
-        <activity
-            android:name=".LandingPage"
-            android:exported="false" />
-        <activity
-            android:name=".AssigmentForm"
-            android:exported="false" /> <!-- MEMAKSA AGAR SCANNER POTRAIT -->
-        <activity
-            android:name="com.journeyapps.barcodescanner.CaptureActivity"
-            android:screenOrientation="portrait"
-            android:stateNotNeeded="true"
-            tools:replace="android:screenOrientation" />
-        <activity
-            android:name=".scan_page"
-            android:exported="false" />
+
+        <!-- Halaman utama -->
         <activity
             android:name=".landing_page"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- Halaman ujian -->
+        <activity
+            android:name=".AssigmentForm"
+            android:exported="false" />
+
+        <!-- Scanner -->
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="portrait"
+            android:stateNotNeeded="true"
+            tools:replace="android:screenOrientation" />
+
+        <!-- Halaman scan -->
+        <activity
+            android:name=".scan_page"
+            android:exported="false" />
+
+        <!-- Accessibility Service -->
         <service
             android:name=".FloatingDetect"
             android:exported="false"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
@@ -61,6 +78,7 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_config" />
         </service>
+
     </application>
 
 </manifest>
