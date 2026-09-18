@@ -27,6 +27,11 @@ import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
+import android.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+
 
 private lateinit var bookSession: SharedPreferences
 private lateinit var editor: SharedPreferences.Editor
@@ -37,11 +42,16 @@ class scan_page : AppCompatActivity() {
     private lateinit var btnScan: Button
     private lateinit var btnStart: Button
     private lateinit var btnImage: Button
+    private lateinit var aksesibilitas: Aksesibilitas
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_landing_page)
+
+        //PENGECEKAN APAKAH ADA APLIKASI MENGAMBANG
+        aksesibilitas = Aksesibilitas(this)
+
 
         //====================LAYOUT MENU ANIMATION=====================//
         val layoutForm = findViewById<android.widget.LinearLayout>(
@@ -130,7 +140,91 @@ class scan_page : AppCompatActivity() {
         }
     }
 
+    // ===================FUNCTION CEK AKSEBILITAS======================//
+    override fun onResume() {
+        super.onResume()
 
+        if (::aksesibilitas.isInitialized) {
+            cekAksesibilitas()
+        }
+    }
+
+    private fun cekAksesibilitas() {
+
+        val terdeteksi = aksesibilitas.cekAccessibility()
+
+        Log.d(
+            "LandingPage",
+            "Accessibility pihak ketiga: $terdeteksi"
+        )
+
+        if (terdeteksi) {
+            aksesibilitas.tampilkanDialog()
+        }
+    }
+
+    override fun onDestroy() {
+
+        if (::aksesibilitas.isInitialized) {
+            aksesibilitas.destroy()
+        }
+
+        super.onDestroy()
+    }
+
+    // =================== END FUNCTION CEK AKSEBILITAS ======================//
+
+    // FUNCTION UNTUK DECRYPT LINK UJIAN
+    fun decryptLink(
+        encryptedText: String,
+        secret: String
+    ): String {
+
+        // Membuat key 32 byte
+        val keyString = secret
+            .take(32)
+            .padEnd(32, '0')
+
+        // Membuat IV 16 byte
+        val ivString = secret
+            .take(16)
+            .padEnd(16, '0')
+
+        val key = SecretKeySpec(
+            keyString.toByteArray(Charsets.UTF_8),
+            "AES"
+        )
+
+        val iv = IvParameterSpec(
+            ivString.toByteArray(Charsets.UTF_8)
+        )
+
+        val cipher = Cipher.getInstance(
+            "AES/CBC/PKCS7Padding"
+        )
+
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            key,
+            iv
+        )
+
+        val encryptedBytes = Base64.decode(
+            encryptedText,
+            Base64.DEFAULT
+        )
+
+        val decryptedBytes = cipher.doFinal(encryptedBytes)
+
+        return String(
+            decryptedBytes,
+            Charsets.UTF_8
+        )
+    }
+
+
+
+    // FUNCTION CHECK KODE UJIAN KOSOG ATAU TIDAK
     fun checkingToken() {
         val tokenUjian = kodeUjian.text.toString().trim()
 
@@ -176,7 +270,7 @@ class scan_page : AppCompatActivity() {
             }
             .build()
 
-        val url = "https://api-exam.altech.dpdns.org/api/exam/$kode"
+        val url = "https://apiexam.tkjsmkn2sragen.my.id/api/exam/$kode"
 
         /*Membuat Request Jika tidak ada Method yang ditulis artiny Default GET*/
         val request = Request.Builder()
@@ -226,6 +320,14 @@ class scan_page : AppCompatActivity() {
                                 val linkUjian = data.getString("link_form")
                                 val guru = data.getString("guru_name")
 
+                                // DECRYPT LINK UJIAN
+                                val encryptLink = linkUjian
+                                val secret = "f9adba4b8700d0ce8f2707b2fda00cebac22d94fa318c7fc2aa146dc16b8c500"
+                                val linkFinal = decryptLink(
+                                    encryptLink,
+                                    secret
+                                )
+
                                 runOnUiThread {
 
                                     val intent = Intent(
@@ -233,9 +335,10 @@ class scan_page : AppCompatActivity() {
                                         AssigmentForm::class.java
                                     )
                                     /*AMBIL URL DIBERI NAMA URL ISINYA DARI VARIABEL AssigmentLink*/
-                                    intent.putExtra("URL", linkUjian)
+                                    intent.putExtra("URL", linkFinal)
                                     intent.putExtra("GURU", guru)
                                     intent.putExtra("MAPEL", judul)
+
                                     /*BUKA HALAMAN*/
                                     startActivity(intent)
 
