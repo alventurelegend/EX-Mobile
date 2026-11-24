@@ -26,6 +26,7 @@
         android:required="true" />
 
     <application
+        android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -34,13 +35,13 @@
         android:resizeableActivity="false"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Exmob_revisi"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.Exmob_revisi">
 
         <!-- Halaman utama -->
         <activity
             android:name=".landing_page"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -50,7 +51,8 @@
         <!-- Halaman ujian -->
         <activity
             android:name=".AssigmentForm"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait"/>
 
         <!-- Scanner -->
         <activity
@@ -61,8 +63,9 @@
 
         <!-- Halaman scan -->
         <activity
-            android:name=".scan_page"
-            android:exported="false" />
+                android:name=".scan_page"
+                android:exported="false"
+                android:screenOrientation="portrait"/>
 
     </application>
 

@@ -1,7 +1,9 @@
 package twosra.it.exmob_revisi
 
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
@@ -31,38 +33,47 @@ import android.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import android.media.MediaPlayer
+import android.view.KeyEvent
 
 
 private lateinit var bookSession: SharedPreferences
 private lateinit var editor: SharedPreferences.Editor
 
+
+// ====================== MENGAMBIL ELEMEN DARI XML SCAN PAGE ======================== //
+private lateinit var kodeUjian: EditText
+private lateinit var btnScan: Button
+private lateinit var btnStart: Button
+private lateinit var btnImage: Button
+// ======================================= END ========================================//
+
+
 class scan_page : AppCompatActivity() {
 
-    private lateinit var kodeUjian: EditText
-    private lateinit var btnScan: Button
-    private lateinit var btnStart: Button
-    private lateinit var btnImage: Button
-    private lateinit var aksesibilitas: Aksesibilitas
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_landing_page)
 
-        //PENGECEKAN APAKAH ADA APLIKASI MENGAMBANG
-        aksesibilitas = Aksesibilitas(this)
-
 
         //====================LAYOUT MENU ANIMATION=====================//
         val layoutForm = findViewById<android.widget.LinearLayout>(
             R.id.layout_form
         )
+        //============================ END =============================//
 
-        //POSISI & KONDISI AWAL
+
+
+        //================== POSISI AWAL BOX INPUT KODE ================//
         layoutForm.alpha = 0f
         layoutForm.translationY = 300f
+        //============================ END =============================//
 
-        //POSISI NAIK AKHIR
+
+        //======================== END POSITION ========================//
         layoutForm.animate()
             .alpha(1f)
             .translationY(0f)
@@ -71,23 +82,31 @@ class scan_page : AppCompatActivity() {
                 android.view.animation.DecelerateInterpolator()
             )
             .start()
+        //============================ END =============================//
+
 
         //=========================SESSION ASSIGMENT====================//
         bookSession = getSharedPreferences("session", MODE_PRIVATE)
         editor = bookSession.edit()
+        //============================ END =============================//
 
-        //===================DISABLE/HIDE OVERLAY=======================//
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            window.setHideOverlayWindows(true)
-        }
+
+//       //===================DISABLE/HIDE OVERLAY======================//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            window.setHideOverlayWindows(true)
+//        }
+        //============================ END =============================//
+
 
         //=====================DAFTAR VARIABEL===========================//
         kodeUjian = findViewById(R.id.txtKodeUjian)
         btnScan = findViewById(R.id.btnScan)
         btnStart = findViewById(R.id.btnCari)
         btnImage = findViewById(R.id.btnPickImage)
+        //============================ END =============================//
 
-        /*===================BUTTON SCAN BARCODE CLICK===================*/
+
+        //===================BUTTON SCAN BARCODE CLICK===================//
         val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
             if (result.contents != null) {
                 SelesaiScan(result.contents)
@@ -102,8 +121,11 @@ class scan_page : AppCompatActivity() {
 
             barcodeLauncher.launch(option)
         }
+        //============================ END =============================//
 
-        /* ===================JIKA MEMILIH DI GALERY==============*/
+
+
+        // =====================JIKA MEMILIH DI GALERY==================//
         val PickImage = registerForActivityResult(
             ActivityResultContracts.GetContent()
         ) { uri ->
@@ -132,99 +154,77 @@ class scan_page : AppCompatActivity() {
         btnImage.setOnClickListener {
             PickImage.launch("image/*")
         }
+        //============================ END =============================//
 
 
-        /* ==================START EXAM BUTTON==============*/
+
+        // ==================START EXAM BUTTON==========================//
         btnStart.setOnClickListener {
             checkingToken()
         }
+        //============================ END =============================//
     }
 
-    // ===================FUNCTION CEK AKSEBILITAS======================//
-    override fun onResume() {
-        super.onResume()
 
-        if (::aksesibilitas.isInitialized) {
-            cekAksesibilitas()
-        }
-    }
-
-    private fun cekAksesibilitas() {
-
-        val terdeteksi = aksesibilitas.cekAccessibility()
-
-        Log.d(
-            "LandingPage",
-            "Accessibility pihak ketiga: $terdeteksi"
-        )
-
-        if (terdeteksi) {
-            aksesibilitas.tampilkanDialog()
-        }
-    }
-
-    override fun onDestroy() {
-
-        if (::aksesibilitas.isInitialized) {
-            aksesibilitas.destroy()
-        }
-
-        super.onDestroy()
-    }
-
-    // =================== END FUNCTION CEK AKSEBILITAS ======================//
-
-    // FUNCTION UNTUK DECRYPT LINK UJIAN
+    //================FUNCTION UNTUK DECRYPT LINK UJIAN================//
     fun decryptLink(
         encryptedText: String,
         secret: String
     ): String {
 
-        // Membuat key 32 byte
+        //1. Membuat key 32 byte
         val keyString = secret
             .take(32)
             .padEnd(32, '0')
 
-        // Membuat IV 16 byte
+        //2. Membuat IV 16 byte
         val ivString = secret
             .take(16)
             .padEnd(16, '0')
 
+        //3. memasang algoritma sesuai algoritm d backend
         val key = SecretKeySpec(
             keyString.toByteArray(Charsets.UTF_8),
             "AES"
         )
 
+        //4. Mengubah parameter menjadi array
         val iv = IvParameterSpec(
             ivString.toByteArray(Charsets.UTF_8)
         )
 
+        //5. melakukan transformasi
         val cipher = Cipher.getInstance(
             "AES/CBC/PKCS7Padding"
         )
 
+        //6. menggunakan mode decrypt
         cipher.init(
             Cipher.DECRYPT_MODE,
             key,
             iv
         )
 
+        //7. menggunakan flag Base64
         val encryptedBytes = Base64.decode(
             encryptedText,
             Base64.DEFAULT
         )
 
+        //8. menyimpan hasil decrypt
         val decryptedBytes = cipher.doFinal(encryptedBytes)
 
+        //9. Mengembalikan hasil decrypt
         return String(
             decryptedBytes,
             Charsets.UTF_8
         )
     }
+    //============================ END =============================//
 
 
 
-    // FUNCTION CHECK KODE UJIAN KOSOG ATAU TIDAK
+    //======= FUNCTION CHECK KODE UJIAN KOSOG ATAU TIDAK ===========//
     fun checkingToken() {
         val tokenUjian = kodeUjian.text.toString().trim()
 
@@ -237,7 +237,7 @@ class scan_page : AppCompatActivity() {
         val validateToken = bookSession.getBoolean("clear_$tokenUjian", false)
         if (validateToken) {
             MaterialAlertDialogBuilder(this)
-                .setTitle("Peringatan!")
+                .setTitle("PERINGATAN!")
                 .setMessage("Token Ujian Sudah Digunakan.")
                 .setCancelable(false)
                 .setPositiveButton("OK") { dialog, which ->
@@ -249,9 +249,10 @@ class scan_page : AppCompatActivity() {
             getExam(tokenUjian)
         }
     }
+    //============================ END =============================//
 
 
-    /*=======================SCANNER AREA==================*/
+    //=======================FUNCTION SCANNER AREA==================//
     fun SelesaiScan(result: String?) {
         if (!result.isNullOrEmpty() && result.length <= 15) {
             kodeUjian.setText(result)
@@ -260,8 +261,10 @@ class scan_page : AppCompatActivity() {
             Toast.makeText(this, "Gunakan Kode resmi yang tidak lebih dari 15 Karakter", Toast.LENGTH_SHORT).show()
         }
     }
+    //============================ END =============================//
 
-    /* =======================HTTP REQ AREA==================*/
+
+    // ================ FUNCTIION HTTP REQ AREA=====================//
     fun getExam(kode: String) {
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->
@@ -272,17 +275,17 @@ class scan_page : AppCompatActivity() {
 
         val url = "https://apiexam.tkjsmkn2sragen.my.id/api/exam/$kode"
 
-        /*Membuat Request Jika tidak ada Method yang ditulis artiny Default GET*/
+        //====Membuat Request Jika tidak ada Method yang ditulis artiny Default GET====//
         val request = Request.Builder()
             .url(url)
-            .addHeader("Accept", "application/json") // Penting agar server tahu ini API request
-            .addHeader("Content-Type", "application/json")
-            .addHeader("ngrok-skip-browser-warning", "any")
+            .addHeader("Accept", "application/json")
             .build()
 
         /*Response Ketika Failure*/
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
+                Log.d("API_EXAM", "onFailure URL: $url")
+                Log.d("API_EXAM", "onFailure error: ${e.message}", e)
                 runOnUiThread {
                     Toast.makeText(
                         this@scan_page,
@@ -291,6 +294,7 @@ class scan_page : AppCompatActivity() {
                     ).show()
                 }
             }
+
 
             override fun onResponse(
                 call: Call, response: Response
@@ -368,8 +372,7 @@ class scan_page : AppCompatActivity() {
                 }
             }
         })
-        /* =======================HTTP REQ AREA==================*/
-
+    //============================ END =============================//
     }
 }
 

@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "exmob_revisi"
+rootProject.name = "EX-Mobile TWOSRA"
 include(":app")

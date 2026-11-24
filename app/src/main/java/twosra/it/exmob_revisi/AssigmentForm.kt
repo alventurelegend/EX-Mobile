@@ -7,14 +7,19 @@ import android.net.ConnectivityManager
 import android.app.ActivityManager
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
+import android.media.AudioManager
+import android.media.MediaPlayer
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.BoringLayout
+import android.view.KeyEvent
 import android.view.Window
 import android.view.WindowManager
 import android.webkit.WebView
@@ -35,32 +40,56 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 private lateinit var bookSession: SharedPreferences
 private lateinit var editor: SharedPreferences.Editor
 
+//UNTUK MEMUTAR SOUND
+private var mediaPlayer: MediaPlayer? = null
+
+//JIKA APLIKASI TIDAK FOCUS
+private var NotFocus = false
+
+//UNTUK KONDISI dialog bawaan aplikasi
+private var interDialog = false
+
+//NILAI JUMLAH KECURANGAN
+private var cheat: Int = 0
+
+//PENGECEKAN LOCK TASK
+private var checkCount = 0
+
+
+
 //==================== PENGECEKAN JARINGAN INTERNET ====================//
 class AssigmentForm : AppCompatActivity() {
 
-    var dialogShow = false
+    // ========= VARIABEL PENAMPUNG DATA UJIAN YANG DIKIRIMKAN DARI HALAMAN SCAN ========= //
+    private lateinit var txtMapel: TextView
+    private lateinit var txtGuru: TextView
+    private lateinit var webView: WebView
+    private lateinit var restart: Button
 
+    var url: String? = ""
+    var guruName: String? = ""
+    var mapel: String? = ""
+    // ====== END VARIABEL PENAMPUNG DATA UJIAN YANG DIKIRIMKAN DARI HALAMAN SCAN ========= //
+
+
+
+    // ====== VARIABEL YANG MENANGANI PENGECEKAN BERULANG LOCK TASK MODE =========//
+    var LockShow = false
+    val handler = Handler(Looper.getMainLooper())
+    var dialogShow = false
+    // ====== END VARIABEL YANG MENANGANI PENGECEKAN BERULANG LOCK TASK MODE =====//
+
+
+
+    // ========= VARIABEL UNTUK MENAMPILKAN INFORMASI INTERNET ========== //
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var networkCallback: ConnectivityManager.NetworkCallback
     private lateinit var txtInternet: TextView
+    // ========= END VARIABEL UNTUK MENAMPILKAN INFORMASI INTERNET ========== //
 
-    //KE LANDIG PAGE AGAR TIDAK BUG TAMPILAN
-    private fun keluarKeLandingPage() {
 
-        stopLockTask()
 
-        val intent = Intent(this, landing_page::class.java)
-
-        intent.flags =
-            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-
-        startActivity(intent)
-
-        finish()
-    }
-
-    //MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI
+    //========= MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI ==========//
     private fun bukaPengaturanWifi() {
 
         MaterialAlertDialogBuilder(this)
@@ -83,8 +112,11 @@ class AssigmentForm : AppCompatActivity() {
             }
             .show()
     }
+    //========= END MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI ==========//
 
-    // KETIKA JARINGAN TERSEDIA & TIDAK
+
+
+    //========== MENGATUR KONDISI TEXT KETIKA JARINGAN TERSEDIA & TIDAK ========//
     private fun setupNetworkDetector() {
 
         txtInternet = findViewById(R.id.txtInternetStatus)
@@ -115,31 +147,17 @@ class AssigmentForm : AppCompatActivity() {
                         txtInternet.setTextColor(
                             Color.parseColor("#FF1E00")
                         )
-
+                        interDialog = true
                         bukaPengaturanWifi()
                     }
                 }
             }
 
-
         connectivityManager.registerDefaultNetworkCallback(
             networkCallback
         )
     }
-
-
-    private lateinit var txtMapel: TextView
-    private lateinit var txtGuru: TextView
-    private lateinit var webView: WebView
-    private lateinit var restart: Button
-
-    var url: String? = ""
-    var guruName: String? = ""
-    var mapel: String? = ""
-    var LockShow = false
-
-    // Handler untuk looping pengecekan Lock Task Mode (fitur keamanan)
-    val handler = Handler(Looper.getMainLooper())
+    //========== END MENGATUR KONDISI TEXT KETIKA JARINGAN TERSEDIA & TIDAK ========//
 
 
 
@@ -147,9 +165,15 @@ class AssigmentForm : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //===========MEMASTIKAN VOLUME USER FULL SAAT MASUK APLIKASI============
+        maxVolume()
+        //======END======//
+
         //====== SET CONTENT DI XML DAN UPDATE TAMPILAN BATERAI ==========//
         setContentView(R.layout.assigment_form)
         enableEdgeToEdge()
+        //======END======//
+
 
         //============MENDAFTARKAN CONECTIVITY MANAGER===================//
         connectivityManager =
@@ -157,33 +181,40 @@ class AssigmentForm : AppCompatActivity() {
                     as ConnectivityManager
 
         setupNetworkDetector()
+        //======END======//
+
 
         /*============ AMBIL LINK DARI SCAN_PAGE ========================*/
         url = intent.getStringExtra("URL")
         guruName = intent.getStringExtra("GURU")
         mapel = intent.getStringExtra("MAPEL")
+        //======END======//
+
 
         /*================== AMBIL TEXT&BUTTON DARI XML ========================*/
         txtMapel = findViewById<TextView>(R.id.textMapel)
         txtGuru = findViewById<TextView>(R.id.textGuru)
         restart = findViewById<Button>(R.id.btnRestart)
+        //======END======//
 
-        /*================== AMBIL WEB VIEW & SETTINGS WEB VIEW ========================*/
+
+        /*================== AMBIL WEB VIEW & SETTINGS WEB VIEW ================*/
         webView = findViewById<WebView>(R.id.formView)
         webView.settings.apply {
             supportZoom()
             builtInZoomControls = true
             displayZoomControls = false
         }
+        //======END======//
 
 
-        //=====DIALOG APAKAH BERSEDIA UNTUK LOCK TASK MODE APK===========//
+        //===============DIALOG APAKAH BERSEDIA UNTUK LOCK TASK MODE APK===========//
         class AllowLock : DialogFragment() {
             override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
                 isCancelable = false
 
                 return activity?.let {
-                    val builder = AlertDialog.Builder(it)
+                    val builder = MaterialAlertDialogBuilder(it)
                     builder.setTitle("MOHON DIBACA!!")
                         .setMessage("Anda harus mengijinkan Mode Kunci untuk melanjutkan ujian")
                         .setPositiveButton("Ijinkan") { dialog, which ->
@@ -203,16 +234,25 @@ class AssigmentForm : AppCompatActivity() {
                 } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
             }
         }
+        //===============END DIALOG APAKAH BERSEDIA UNTUK LOCK TASK MODE APK===========//
 
-        //LOADER SAAT UJIAN TERBUKA
+
+
+        //===================== LOADER SAAT UJIAN TERBUKA ==================//
         startLockTask()
+        interDialog = true
         AllowLock().show(supportFragmentManager, "AllowLockDialog")
         updateBatteryOnly()
+        //================== END LOADER SAAT UJIAN TERBUKA ==================//
 
-        //=================== DISABLE/HIDE OVERLAY =======================//
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            window.setHideOverlayWindows(true)
-        }
+
+
+       //=================== DISABLE/HIDE OVERLAY =======================//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            window.setHideOverlayWindows(true)
+//        }
+        //============== END DISABLE/HIDE OVERLAY =======================//
+
 
         //========================= SESSION ASSIGMENT ====================//
         bookSession = getSharedPreferences("session", MODE_PRIVATE)
@@ -223,21 +263,25 @@ class AssigmentForm : AppCompatActivity() {
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
         )
+        //======END======//
 
-        /*================ INISIALISASI BUTTON & VARIABEL ===============*/
+
+        //================ INISIALISASI BUTTON & VARIABEL ===============//
         val btnOut = findViewById<Button>(R.id.btnOut)
+        //======END======//
 
-        /*================== MEMATIKAN POPUP COPY/SALIN =================*/
+
+        //================== MEMATIKAN POPUP COPY/SALIN =================//
         webView.setOnLongClickListener { true }
         webView.isLongClickable = false
+        //======END======//
 
 
-
-        /*==================== DIALOG FUNCTION =========================*/
+        // ==================== DIALOG FUNCTION ========================= //
         class OutAssigment : DialogFragment() {
             override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
                 return activity?.let {
-                    val builder = AlertDialog.Builder(it)
+                    val builder = MaterialAlertDialogBuilder(it)
                     builder.setTitle("PERINGATAN")
                         .setMessage("Jika anda keluar anda tidak dapat mengakses Link Ujian kembali, Pastikan anda sudah menyelesaikan soal!")
                         .setPositiveButton("Oke") { dialog, which ->
@@ -252,37 +296,134 @@ class AssigmentForm : AppCompatActivity() {
                     builder.create()
                 } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
             }
-
-
-            fun removeSession() {
-                val kodeSaatIni = bookSession.getString("active", null)
-
-                if (kodeSaatIni != null) {
-                    editor.putBoolean("clear_$kodeSaatIni", true)
-                    editor.remove("clear")
-                    editor.apply()
-                }
-            }
         }
+        //======END======//
+
 
         //================KELUAR UJIAN====================//
         btnOut.setOnClickListener {
+            interDialog = true
             OutAssigment().show(supportFragmentManager, "OUT_DIALOG")
         }
+        //======END======//
+
 
         //================RESTART UJIAN===================//
         restart.setOnClickListener {
             loadWeb()
             Toast.makeText(this, "Berhasil Merestart Halaman", Toast.LENGTH_SHORT).show()
         }
+        //======END======//
 
+
+        //==========MEMATIKAN/DISABLE BUTTON KEMBALI=========//
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
             //============ DIKOSONGKAN AGAR USER TIDAK BISA KEMBALI ==============//
             }
         })
+        //======END======//
     }
 
+    //========FUNCTION UNTUK MENDETEKSI APAKAH APLIKASI FOCUS========//
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+
+        if(!hasFocus) {
+            if(interDialog) {
+                interDialog = false
+                return
+            }
+            NotFocus = true
+            if(anomalyCheck()) {
+                if (cheat < 3) {
+                    cheat += 1
+                    alertFloat()
+                } else {
+                    alert()
+                    warningFloat()
+                }
+            }
+        }
+    }
+    //======END======//
+
+
+    //=======MENYALAKAN SOUND ALERT========//
+    override fun onResume() {
+        super.onResume()
+        maxVolume() }
+    //======END======//
+
+
+    //=======MENDISABLE BUTTON VOLUME========//
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            //JIKA KEY/TOMBOL VOLUME EVENT DI NAIKAN ATAU TURUNKAN PAKSA KE MAKSIMAL
+            maxVolume()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+    //======END======//
+
+
+    //============ LIFECYCLE ONDESTROY ==========//
+    override fun onDestroy() {
+
+        //========MENGHAPUS CALLBACK INTERNET CHECKING=======//
+        handler.removeCallbacksAndMessages(null)
+
+        if (::connectivityManager.isInitialized &&
+            ::networkCallback.isInitialized
+        ) {
+            connectivityManager.unregisterNetworkCallback(
+                networkCallback
+            )
+        }
+
+        //=======MEMATIKAN SOUND ALERT========//
+        mediaPlayer?.release()
+        mediaPlayer = null
+        super.onDestroy()
+    }
+    //======END======//
+
+
+    //================== FUNCTION PEMUTARAN ALERT ======================//
+    fun alert() {
+        mediaPlayer?.release()
+        mediaPlayer = MediaPlayer.create(this, R.raw.alert_examob)
+        mediaPlayer?.setOnCompletionListener {
+            it.release()
+            mediaPlayer = null
+        }
+        mediaPlayer?.start()
+    }
+    //======END======//
+
+
+    //=============FUNCTION CHECK APLIKASI ON FOCUS / TIDAK============//
+    fun anomalyCheck(): Boolean {
+
+        val result: Boolean
+        result = NotFocus
+        NotFocus = false
+        return result
+
+    }
+    //======END======//
+
+
+    //======FUNCTION MEN MAX KAN VOLUME=======//
+    fun maxVolume() {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val volumeMaks = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeMaks, 0)
+        Log.d("MAKSIMAL AUDIO", "Berhasil memaksimalkan audio")
+    }
+    //======END======//
 
 
     //==========LOADED WEB VIEW FORM=========//
@@ -298,7 +439,7 @@ class AssigmentForm : AppCompatActivity() {
         webView.settings.domStorageEnabled = true/* CEGAH KELUAR KE CHROME/BROWSER */
         webView.webViewClient = WebViewClient()
     }
-
+    //======END======//
 
 
     //======================= FUNGSI KHUSUS UPDATE BATERAI =======================//
@@ -310,41 +451,108 @@ class AssigmentForm : AppCompatActivity() {
             txtBattery.text = "Baterai: $batLevel%"
         }
     }
+    //======END======//
 
-    //=================== LOOPING PENGECEKAN LOCKMODE & UPDATE BATERAI ===================//
+
+    //======================= PENDETEKSI KHUSUS TIAP DETIK LOCK TASK DETECTION =========================//
     fun checkLocked() {
         val ActManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
 
-        //========UPDATE BATERAI==========//
+        // ======== UPDATE BATERAI ========
         updateBatteryOnly()
 
-        if (!LockShow && ActManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE) {
-            LockShow = true
-            hideSystemUI(this.window)
+        val isLocked =
+            ActManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
+
+        checkCount++
+
+        if (isLocked) {
+
+            // Lock Task masih aktif
+            if (!LockShow) {
+                LockShow = true
+                hideSystemUI(this.window)
+            }
+
         } else {
-            if (ActManager.lockTaskModeState == ActivityManager.LOCK_TASK_MODE_NONE) {
-                showWarning()
-                return
+
+            // Lock Task TIDAK aktif
+
+            if (checkCount == 1) {
+                // Terlepas pada pengecekan pertama
+                showWarningFirst()
+            } else {
+                // Terlepas setelah detik pertama
+                showWarningSecond()
             }
         }
+
         handler.postDelayed({ checkLocked() }, 1000)
     }
+    //======END======//
 
-    /* FUNGSI JIKA TERJADI KESALAHAN UNTUK MENAMPILKAN WARNING PIN */
-    fun showWarning() {
+
+    /* ============================= FUNGSI JIKA USER MENCOPOT LOCK APK DI AWAL ============================= */
+    fun showWarningFirst() {
         if (dialogShow) return
         dialogShow = true
 
-        AlertDialog.Builder(this).setTitle("PERINGATAN")
-            .setMessage("Anda Harus Menyematkan aplikasi untuk Melanjutkan Ujian!")
+        MaterialAlertDialogBuilder(this).setTitle("PERINGATAN")
+            .setMessage("Silakan aktifkan Kunci Layar/Pin Aplikasi yang muncul untuk melanjutkan ujian")
             .setCancelable(false).setPositiveButton("Keluar") { dialog, which ->
                 val intent = Intent(this, scan_page::class.java)
                 startActivity(intent)
                 finish()
             }.show()
     }
+    //======END======//
 
-    /* FUNGSI UNTUK MENGHILANGKAN NAVIGATION (FULLSCREEN TOTAL) */
+
+    // ============================== FUNGSI JIKA USER MENCOBA MENCOPOT LOCK APK ========================= //
+    fun showWarningSecond() {
+        if (dialogShow) return
+        dialogShow = true
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("PERINGATAN")
+            .setMessage("Anda telah berusaha membuka kunci aplikasi, mohon jangan di ulangi lagi silakan login kembali untuk melanjutkan ujian")
+            .setCancelable(false).setPositiveButton("Keluar") { dialog, which ->
+                val intent = Intent(this, scan_page::class.java)
+                startActivity(intent)
+                finish()
+            }.show()
+    }
+    //======END======//
+
+
+    // ============================== PERINGATAN FLOATING APP SATUAN ================================== //
+    fun alertFloat() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("PERINGATAN!")
+            .setMessage("Kamu terdeteksi melakukan kecurangan sebanyak ${cheat}x, jika melakukan kecurangan lebih dari 3x kamu akan di keluarkan dari Ujian!")
+            .setCancelable(false).setPositiveButton("OK") { dialog, which ->
+            }.show()
+    }
+    //======END======//
+
+
+    // ============================== FUNGSI PERINGATAN TERAKHIR FLOATING APP ========================= //
+    fun warningFloat() {
+        MaterialAlertDialogBuilder(this).setTitle("PERINGATAN!")
+            .setMessage("Batas Peringatan tercapai anda akan dikeluarkan dari ujian, silakan hubungi operator untuk melanjutkan ujian")
+            .setCancelable(false).setPositiveButton("Keluar") { dialog, which ->
+                removeSession()
+                val intent = Intent(this, scan_page::class.java)
+                startActivity(intent)
+                stopLockTask()
+                finish()
+                cheat = 0
+            }.show()
+    }
+    //======END======//
+
+
+    // ================================== FUNGSI UNTUK MENGHILANGKAN NAVIGATION (FULLSCREEN TOTAL) ====================== //
     fun hideSystemUI(window: Window) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controler = WindowCompat.getInsetsController(window, window.decorView)
@@ -354,20 +562,36 @@ class AssigmentForm : AppCompatActivity() {
         controler.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
+    //======END======//
 
-    /* LIFECYCLE ONDESTROY - Menghapus callback agar tidak bocor (Memory Leak) */
-    override fun onDestroy() {
 
-        handler.removeCallbacksAndMessages(null)
+    // ========= FUNCTION REMOVE SESI KODE ========= //
+    fun removeSession() {
+        val kodeSaatIni = bookSession.getString("active", null)
 
-        if (::connectivityManager.isInitialized &&
-            ::networkCallback.isInitialized
-        ) {
-            connectivityManager.unregisterNetworkCallback(
-                networkCallback
-            )
+        if (kodeSaatIni != null) {
+            editor.putBoolean("clear_$kodeSaatIni", true)
+            editor.remove("clear")
+            editor.apply()
         }
-
-        super.onDestroy()
     }
+    //======END======//
+
+
+    //======== KE LANDING PAGE AGAR TIDAK BUG TAMPILAN ======= //
+    fun keluarKeLandingPage() {
+
+        stopLockTask()
+
+        val intent = Intent(this, landing_page::class.java)
+
+        intent.flags =
+            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+        startActivity(intent)
+
+        finish()
+    }
+    //======END======//
 }
