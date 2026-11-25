@@ -1,5 +1,6 @@
 package twosra.it.exmob_revisi
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
@@ -7,7 +8,6 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
-import android.accessibilityservice.AccessibilityServiceInfo
 
 class Aksesibilitas(
     private val context: Context
@@ -23,20 +23,17 @@ class Aksesibilitas(
 
     fun cekAccessibility(): Boolean {
 
-        val manager =
-            context.getSystemService(
-                Context.ACCESSIBILITY_SERVICE
-            ) as AccessibilityManager
+        val manager = context.getSystemService(
+            Context.ACCESSIBILITY_SERVICE
+        ) as AccessibilityManager
 
-        val services =
-            manager.getEnabledAccessibilityServiceList(
-                AccessibilityServiceInfo.FEEDBACK_ALL_MASK
-            )
+        val services = manager.getEnabledAccessibilityServiceList(
+            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+        )
 
         for (service in services) {
 
-            val packageName =
-                service.resolveInfo.serviceInfo.packageName
+            val packageName = service.resolveInfo.serviceInfo.packageName
 
             // Accessibility bawaan yang diizinkan
             if (packageName in whitelistPackages) {
@@ -59,19 +56,13 @@ class Aksesibilitas(
 
         return try {
 
-            val appInfo =
-                context.packageManager.getApplicationInfo(
-                    packageName,
-                    0
-                )
+            val appInfo = context.packageManager.getApplicationInfo(
+                packageName, 0
+            )
 
-            val systemApp =
-                (appInfo.flags and
-                        ApplicationInfo.FLAG_SYSTEM) != 0
+            val systemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
-            val updatedSystemApp =
-                (appInfo.flags and
-                        ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+            val updatedSystemApp = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
 
             systemApp || updatedSystemApp
 
@@ -88,27 +79,18 @@ class Aksesibilitas(
             return
         }
 
-        val activity = context as? Activity
-            ?: return
+        val activity = context as? Activity ?: return
 
         // Pastikan Activity masih aktif
         if (activity.isFinishing || activity.isDestroyed) {
             return
         }
 
-        dialog = AlertDialog.Builder(activity)
-            .setTitle("Aksesibilitas Terdeteksi")
-            .setMessage(
-                "Terdeteksi aplikasi pihak ketiga yang " +
-                        "menggunakan layanan Aksesibilitas.\n\n" +
-                        "Untuk melanjutkan, silakan matikan " +
-                        "Aksesibilitas aplikasi tersebut terlebih dahulu."
-            )
-            .setCancelable(false)
-            .setPositiveButton("OK") { _, _ ->
+        dialog = AlertDialog.Builder(activity).setTitle("Aksesibilitas Terdeteksi").setMessage(
+                "Terdeteksi aplikasi pihak ketiga yang " + "menggunakan layanan Aksesibilitas.\n\n" + "Untuk melanjutkan, silakan matikan " + "Aksesibilitas aplikasi tersebut terlebih dahulu."
+            ).setCancelable(false).setPositiveButton("OK") { _, _ ->
                 bukaPengaturanAccessibility()
-            }
-            .create()
+            }.create()
 
         // Tidak bisa ditutup dengan tap di luar
         dialog?.setCanceledOnTouchOutside(false)
@@ -119,8 +101,7 @@ class Aksesibilitas(
 
     private fun bukaPengaturanAccessibility() {
 
-        val intent =
-            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
 
         context.startActivity(intent)
     }

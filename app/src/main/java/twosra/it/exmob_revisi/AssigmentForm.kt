@@ -1,11 +1,6 @@
 package twosra.it.exmob_revisi
 
-import android.provider.Settings
-import android.util.Log
-import android.net.Network
-import android.net.ConnectivityManager
 import android.app.ActivityManager
-import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
@@ -13,18 +8,24 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.text.BoringLayout
+import android.provider.Settings
+import android.util.Log
 import android.view.KeyEvent
+import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -56,7 +57,6 @@ private var cheat: Int = 0
 private var checkCount = 0
 
 
-
 //==================== PENGECEKAN JARINGAN INTERNET ====================//
 class AssigmentForm : AppCompatActivity() {
 
@@ -72,13 +72,21 @@ class AssigmentForm : AppCompatActivity() {
     // ====== END VARIABEL PENAMPUNG DATA UJIAN YANG DIKIRIMKAN DARI HALAMAN SCAN ========= //
 
 
-
     // ====== VARIABEL YANG MENANGANI PENGECEKAN BERULANG LOCK TASK MODE =========//
     var LockShow = false
     val handler = Handler(Looper.getMainLooper())
     var dialogShow = false
     // ====== END VARIABEL YANG MENANGANI PENGECEKAN BERULANG LOCK TASK MODE =====//
 
+
+    // ===== VARIABEL UNTUK MENJALANKAN PENGECEKAN BERKALA PADA VOLUME ===========//
+    private val stayVolume = object : Runnable {
+        override fun run() {
+            maxVolume()
+            handler.postDelayed(this, 1000)
+        }
+    }
+    // =============================== END ======================================//
 
 
     // ========= VARIABEL UNTUK MENAMPILKAN INFORMASI INTERNET ========== //
@@ -88,32 +96,23 @@ class AssigmentForm : AppCompatActivity() {
     // ========= END VARIABEL UNTUK MENAMPILKAN INFORMASI INTERNET ========== //
 
 
-
     //========= MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI ==========//
     private fun bukaPengaturanWifi() {
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Peringatan Internet Anda Mati!")
-            .setMessage(
-                "Tenang, progres ujian Anda disimpan. " +
-                        "Silakan hubungkan kembali perangkat dengan internet."
-            )
-            .setCancelable(false)
-            .setPositiveButton("OK") { dialog, _ ->
+        MaterialAlertDialogBuilder(this).setTitle("Peringatan Internet Anda Mati!").setMessage(
+                "Tenang, progres ujian Anda disimpan. " + "Silakan hubungkan kembali perangkat dengan internet."
+            ).setCancelable(false).setPositiveButton("OK") { dialog, _ ->
 
                 dialog.dismiss()
 
                 keluarKeLandingPage()
 
-                val intent =
-                    Intent(Settings.ACTION_WIFI_SETTINGS)
+                val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
 
                 startActivity(intent)
-            }
-            .show()
+            }.show()
     }
     //========= END MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI ==========//
-
 
 
     //========== MENGATUR KONDISI TEXT KETIKA JARINGAN TERSEDIA & TIDAK ========//
@@ -121,37 +120,34 @@ class AssigmentForm : AppCompatActivity() {
 
         txtInternet = findViewById(R.id.txtInternetStatus)
 
-        networkCallback =
-            object : ConnectivityManager.NetworkCallback() {
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
 
-                override fun onAvailable(network: Network) {
-                    Log.d(
-                        "NETWORK_DETECTOR",
-                        "JARINGAN TERSEDIA - ${System.currentTimeMillis()}"
+            override fun onAvailable(network: Network) {
+                Log.d(
+                    "NETWORK_DETECTOR", "JARINGAN TERSEDIA - ${System.currentTimeMillis()}"
+                )
+                runOnUiThread {
+                    txtInternet.text = "INTERNET HIDUP"
+                    txtInternet.setTextColor(
+                        Color.parseColor("#55ff00")
                     )
-                    runOnUiThread {
-                        txtInternet.text = "INTERNET HIDUP"
-                        txtInternet.setTextColor(
-                            Color.parseColor("#55ff00")
-                        )
-                    }
-                }
-
-                override fun onLost(network: Network) {
-                    Log.d(
-                        "NETWORK_DETECTOR",
-                        "JARINGAN HILANG - ${System.currentTimeMillis()}"
-                    )
-                    runOnUiThread {
-                        txtInternet.text = "INTERNET MATI"
-                        txtInternet.setTextColor(
-                            Color.parseColor("#FF1E00")
-                        )
-                        interDialog = true
-                        bukaPengaturanWifi()
-                    }
                 }
             }
+
+            override fun onLost(network: Network) {
+                Log.d(
+                    "NETWORK_DETECTOR", "JARINGAN HILANG - ${System.currentTimeMillis()}"
+                )
+                runOnUiThread {
+                    txtInternet.text = "INTERNET MATI"
+                    txtInternet.setTextColor(
+                        Color.parseColor("#FF1E00")
+                    )
+                    interDialog = true
+                    bukaPengaturanWifi()
+                }
+            }
+        }
 
         connectivityManager.registerDefaultNetworkCallback(
             networkCallback
@@ -160,25 +156,30 @@ class AssigmentForm : AppCompatActivity() {
     //========== END MENGATUR KONDISI TEXT KETIKA JARINGAN TERSEDIA & TIDAK ========//
 
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
 
         //===========MEMASTIKAN VOLUME USER FULL SAAT MASUK APLIKASI============
         maxVolume()
         //======END======//
 
-        //====== SET CONTENT DI XML DAN UPDATE TAMPILAN BATERAI ==========//
         setContentView(R.layout.assigment_form)
         enableEdgeToEdge()
+
+
+        // ============== MEMANGGIL PENGECEKAN VOLUME TIAP 1s ================//
+        handler.post(stayVolume)
         //======END======//
 
 
+        // ====================== KLIK KELUAR UJIAN =====================//
+
+        // ==============END================//
+
+
         //============MENDAFTARKAN CONECTIVITY MANAGER===================//
-        connectivityManager =
-            getSystemService(CONNECTIVITY_SERVICE)
-                    as ConnectivityManager
+        connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
         setupNetworkDetector()
         //======END======//
@@ -215,27 +216,27 @@ class AssigmentForm : AppCompatActivity() {
 
                 return activity?.let {
                     val builder = MaterialAlertDialogBuilder(it)
-                    builder.setTitle("MOHON DIBACA!!")
-                        .setMessage("Anda harus mengijinkan Mode Kunci untuk melanjutkan ujian")
-                        .setPositiveButton("Ijinkan") { dialog, which ->
+                    builder.setTitle("MOHON DIBACA!!").setMessage(
+                            """
+                            1. Pastikan Internet dan Baterai dalam kondisi cukup.
+                            2. Membuka Layar belah atau aplikasi mengambang akan terdeteksi.
+                            3. Melakukan pelanggaran lebih dari 3x akan dikeluarkan dari Ujian dan memicu Alarm.
+                            4. Token ujian hanya bisa digunakan 1x.
+                            5. Jika keluar dari aplikasi karena HP crash, silakan masuk dengan Token Yang sama.
+                            6. Kerjakan Ujian dengan teliti.
+                        """.trimIndent()
+                        ).setPositiveButton("OK") { dialog, which ->
                             // MUNCULKAN UJIAN
                             loadWeb()
                             // PENGECEKAN LOCK TASK
                             handler.postDelayed({ checkLocked() }, 1000)
                             // USER MELANJUTKAN UJIAN
-
-                        }.setNegativeButton("Tidak") { dialog, which ->
-                            val intent = Intent(this@AssigmentForm, scan_page::class.java)
-                            startActivity(intent)
-                            stopLockTask()
-                            finish()
                         }
                     builder.create()
                 } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
             }
         }
         //===============END DIALOG APAKAH BERSEDIA UNTUK LOCK TASK MODE APK===========//
-
 
 
         //===================== LOADER SAAT UJIAN TERBUKA ==================//
@@ -246,11 +247,10 @@ class AssigmentForm : AppCompatActivity() {
         //================== END LOADER SAAT UJIAN TERBUKA ==================//
 
 
-
-       //=================== DISABLE/HIDE OVERLAY =======================//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-//            window.setHideOverlayWindows(true)
-//        }
+        //=================== DISABLE/HIDE OVERLAY =======================//
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.setHideOverlayWindows(true)
+        }
         //============== END DISABLE/HIDE OVERLAY =======================//
 
 
@@ -277,33 +277,10 @@ class AssigmentForm : AppCompatActivity() {
         //======END======//
 
 
-        // ==================== DIALOG FUNCTION ========================= //
-        class OutAssigment : DialogFragment() {
-            override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-                return activity?.let {
-                    val builder = MaterialAlertDialogBuilder(it)
-                    builder.setTitle("PERINGATAN")
-                        .setMessage("Jika anda keluar anda tidak dapat mengakses Link Ujian kembali, Pastikan anda sudah menyelesaikan soal!")
-                        .setPositiveButton("Oke") { dialog, which ->
-                            removeSession()
-                            val intent = Intent(this@AssigmentForm, scan_page::class.java)
-                            startActivity(intent)
-                            stopLockTask()
-                            finish()
-                        }.setNegativeButton("Tidak") { dialog, which ->
-                            // USER CANCEL
-                        }
-                    builder.create()
-                } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
-            }
-        }
-        //======END======//
-
-
         //================KELUAR UJIAN====================//
         btnOut.setOnClickListener {
             interDialog = true
-            OutAssigment().show(supportFragmentManager, "OUT_DIALOG")
+            finishExam()
         }
         //======END======//
 
@@ -319,7 +296,7 @@ class AssigmentForm : AppCompatActivity() {
         //==========MEMATIKAN/DISABLE BUTTON KEMBALI=========//
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-            //============ DIKOSONGKAN AGAR USER TIDAK BISA KEMBALI ==============//
+                //============ DIKOSONGKAN AGAR USER TIDAK BISA KEMBALI ==============//
             }
         })
         //======END======//
@@ -329,13 +306,13 @@ class AssigmentForm : AppCompatActivity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
 
-        if(!hasFocus) {
-            if(interDialog) {
+        if (!hasFocus) {
+            if (interDialog) {
                 interDialog = false
                 return
             }
             NotFocus = true
-            if(anomalyCheck()) {
+            if (anomalyCheck()) {
                 if (cheat < 3) {
                     cheat += 1
                     alertFloat()
@@ -352,14 +329,14 @@ class AssigmentForm : AppCompatActivity() {
     //=======MENYALAKAN SOUND ALERT========//
     override fun onResume() {
         super.onResume()
-        maxVolume() }
+        maxVolume()
+    }
     //======END======//
 
 
     //=======MENDISABLE BUTTON VOLUME========//
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-            keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             //JIKA KEY/TOMBOL VOLUME EVENT DI NAIKAN ATAU TURUNKAN PAKSA KE MAKSIMAL
             maxVolume()
             return true
@@ -375,9 +352,7 @@ class AssigmentForm : AppCompatActivity() {
         //========MENGHAPUS CALLBACK INTERNET CHECKING=======//
         handler.removeCallbacksAndMessages(null)
 
-        if (::connectivityManager.isInitialized &&
-            ::networkCallback.isInitialized
-        ) {
+        if (::connectivityManager.isInitialized && ::networkCallback.isInitialized) {
             connectivityManager.unregisterNetworkCallback(
                 networkCallback
             )
@@ -395,11 +370,18 @@ class AssigmentForm : AppCompatActivity() {
     fun alert() {
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer.create(this, R.raw.alert_examob)
-        mediaPlayer?.setOnCompletionListener {
-            it.release()
-            mediaPlayer = null
-        }
+        mediaPlayer?.isLooping = true
         mediaPlayer?.start()
+
+    }
+    //======END======//
+
+
+    //================== FUNCTION STOPING ALERT ======================//
+    fun stopAlert() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
     //======END======//
 
@@ -461,8 +443,7 @@ class AssigmentForm : AppCompatActivity() {
         // ======== UPDATE BATERAI ========
         updateBatteryOnly()
 
-        val isLocked =
-            ActManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
+        val isLocked = ActManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
 
         checkCount++
 
@@ -513,8 +494,7 @@ class AssigmentForm : AppCompatActivity() {
         if (dialogShow) return
         dialogShow = true
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle("PERINGATAN")
+        MaterialAlertDialogBuilder(this).setTitle("PERINGATAN")
             .setMessage("Anda telah berusaha membuka kunci aplikasi, mohon jangan di ulangi lagi silakan login kembali untuk melanjutkan ujian")
             .setCancelable(false).setPositiveButton("Keluar") { dialog, which ->
                 val intent = Intent(this, scan_page::class.java)
@@ -527,8 +507,7 @@ class AssigmentForm : AppCompatActivity() {
 
     // ============================== PERINGATAN FLOATING APP SATUAN ================================== //
     fun alertFloat() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("PERINGATAN!")
+        MaterialAlertDialogBuilder(this).setTitle("PERINGATAN!")
             .setMessage("Kamu terdeteksi melakukan kecurangan sebanyak ${cheat}x, jika melakukan kecurangan lebih dari 3x kamu akan di keluarkan dari Ujian!")
             .setCancelable(false).setPositiveButton("OK") { dialog, which ->
             }.show()
@@ -538,16 +517,38 @@ class AssigmentForm : AppCompatActivity() {
 
     // ============================== FUNGSI PERINGATAN TERAKHIR FLOATING APP ========================= //
     fun warningFloat() {
-        MaterialAlertDialogBuilder(this).setTitle("PERINGATAN!")
-            .setMessage("Batas Peringatan tercapai anda akan dikeluarkan dari ujian, silakan hubungi operator untuk melanjutkan ujian")
-            .setCancelable(false).setPositiveButton("Keluar") { dialog, which ->
-                removeSession()
-                val intent = Intent(this, scan_page::class.java)
-                startActivity(intent)
-                stopLockTask()
-                finish()
-                cheat = 0
-            }.show()
+        // =========== MENGAMBIL BUTTON DARI DIALOG WARNING DARI XML DAN MENANGANI CLICK LISTENER NYA =====================//
+        findViewById<LinearLayout>(R.id.lapisanWarningFloat).visibility = View.VISIBLE
+
+        findViewById<Button>(R.id.btnKeluarWarning).setOnClickListener {
+            stopAlert()
+            removeSession()
+            val intent = Intent(this, scan_page::class.java)
+            startActivity(intent)
+            stopLockTask()
+            finish()
+            cheat = 0
+        }
+    }
+    //======END======//
+
+
+    // ======================== FUNGSI UNTUK MENAMPILKAN DIALOG SELESAI EXAM============ //
+    fun finishExam() {
+        findViewById<FrameLayout>(R.id.dialogPeringatan).visibility = View.VISIBLE
+
+        findViewById<Button>(R.id.btnSelesai).setOnClickListener {
+            removeSession()
+            val intent = Intent(this@AssigmentForm, scan_page::class.java)
+            startActivity(intent)
+            stopLockTask()
+            finish()
+            cheat = 0
+        }
+
+        findViewById<Button>(R.id.btnCancel).setOnClickListener {
+            findViewById<FrameLayout>(R.id.dialogPeringatan).visibility = View.GONE
+        }
     }
     //======END======//
 
@@ -585,9 +586,7 @@ class AssigmentForm : AppCompatActivity() {
 
         val intent = Intent(this, landing_page::class.java)
 
-        intent.flags =
-            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
 
         startActivity(intent)
 

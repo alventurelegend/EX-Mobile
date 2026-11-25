@@ -3,11 +3,12 @@ package twosra.it.exmob_revisi
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
@@ -29,12 +30,9 @@ import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
-import android.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import android.media.MediaPlayer
-import android.view.KeyEvent
 
 
 private lateinit var bookSession: SharedPreferences
@@ -52,7 +50,6 @@ private lateinit var btnImage: Button
 class scan_page : AppCompatActivity() {
 
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -66,7 +63,6 @@ class scan_page : AppCompatActivity() {
         //============================ END =============================//
 
 
-
         //================== POSISI AWAL BOX INPUT KODE ================//
         layoutForm.alpha = 0f
         layoutForm.translationY = 300f
@@ -78,7 +74,7 @@ class scan_page : AppCompatActivity() {
             .alpha(1f)
             .translationY(0f)
             .setDuration(700)
-            .setInterpolator (
+            .setInterpolator(
                 android.view.animation.DecelerateInterpolator()
             )
             .start()
@@ -91,10 +87,10 @@ class scan_page : AppCompatActivity() {
         //============================ END =============================//
 
 
-//       //===================DISABLE/HIDE OVERLAY======================//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-//            window.setHideOverlayWindows(true)
-//        }
+        //===================DISABLE/HIDE OVERLAY======================//
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.setHideOverlayWindows(true)
+        }
         //============================ END =============================//
 
 
@@ -122,7 +118,6 @@ class scan_page : AppCompatActivity() {
             barcodeLauncher.launch(option)
         }
         //============================ END =============================//
-
 
 
         // =====================JIKA MEMILIH DI GALERY==================//
@@ -157,13 +152,23 @@ class scan_page : AppCompatActivity() {
         //============================ END =============================//
 
 
-
         // ==================START EXAM BUTTON==========================//
         btnStart.setOnClickListener {
             checkingToken()
+            closeKeyboard()
         }
         //============================ END =============================//
     }
+
+
+    // ====================== FUNCTION CLOSE KEYBOARD =================//
+    fun closeKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        window.decorView.post {
+            imm.hideSoftInputFromWindow(window.decorView.windowToken, 0)
+        }
+    }
+    //======END======//
 
 
     //================FUNCTION UNTUK DECRYPT LINK UJIAN================//
@@ -223,7 +228,6 @@ class scan_page : AppCompatActivity() {
     //============================ END =============================//
 
 
-
     //======= FUNCTION CHECK KODE UJIAN KOSOG ATAU TIDAK ===========//
     fun checkingToken() {
         val tokenUjian = kodeUjian.text.toString().trim()
@@ -258,7 +262,11 @@ class scan_page : AppCompatActivity() {
             kodeUjian.setText(result)
             Toast.makeText(this, "Berhasil di scan", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Gunakan Kode resmi yang tidak lebih dari 15 Karakter", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                "Gunakan Kode resmi yang tidak lebih dari 15 Karakter",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
     //============================ END =============================//
@@ -273,7 +281,7 @@ class scan_page : AppCompatActivity() {
             }
             .build()
 
-        val url = "https://apiexam.tkjsmkn2sragen.my.id/api/exam/$kode"
+        val url = "https://api.tkjsmkn2sragen.my.id/api/exam/$kode"
 
         //====Membuat Request Jika tidak ada Method yang ditulis artiny Default GET====//
         val request = Request.Builder()
@@ -326,7 +334,8 @@ class scan_page : AppCompatActivity() {
 
                                 // DECRYPT LINK UJIAN
                                 val encryptLink = linkUjian
-                                val secret = "f9adba4b8700d0ce8f2707b2fda00cebac22d94fa318c7fc2aa146dc16b8c500"
+                                val secret =
+                                    "f9adba4b8700d0ce8f2707b2fda00cebac22d94fa318c7fc2aa146dc16b8c500"
                                 val linkFinal = decryptLink(
                                     encryptLink,
                                     secret
@@ -372,7 +381,7 @@ class scan_page : AppCompatActivity() {
                 }
             }
         })
-    //============================ END =============================//
+        //============================ END =============================//
     }
 }
 
