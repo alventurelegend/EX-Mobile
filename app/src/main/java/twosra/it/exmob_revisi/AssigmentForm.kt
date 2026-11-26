@@ -21,6 +21,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
@@ -101,17 +102,17 @@ class AssigmentForm : AppCompatActivity() {
     private fun bukaPengaturanWifi() {
 
         MaterialAlertDialogBuilder(this).setTitle("Peringatan Internet Anda Mati!").setMessage(
-                "Tenang, progres ujian Anda disimpan. " + "Silakan hubungkan kembali perangkat dengan internet."
-            ).setCancelable(false).setPositiveButton("OK") { dialog, _ ->
+            "Tenang, progres ujian Anda disimpan. " + "Silakan hubungkan kembali perangkat dengan internet."
+        ).setCancelable(false).setPositiveButton("OK") { dialog, _ ->
 
-                dialog.dismiss()
+            dialog.dismiss()
 
-                keluarKeLandingPage()
+            keluarKeLandingPage()
 
-                val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
+            val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
 
-                startActivity(intent)
-            }.show()
+            startActivity(intent)
+        }.show()
     }
     //========= END MEMBUKA PENGATURAN WIFI JIKA INTERNET MATI ==========//
 
@@ -171,6 +172,16 @@ class AssigmentForm : AppCompatActivity() {
         setContentView(R.layout.assigment_form)
         enableEdgeToEdge()
 
+        //===================SEMBUNYIKAN KEYBOARD SAAT MASUK==================//
+        // Keyboard dari halaman scan kadang masih menempel dan menutupi tombol OK
+        // pada dialog AllowLock. Sembunyikan sekali di sini; keyboard tetap bisa
+        // muncul lagi saat siswa mengetuk kolom isian.
+        //==========================END============================//
+        window.decorView.post {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(window.decorView.windowToken, 0)
+        }
+
 
         // ============== MEMANGGIL PENGECEKAN VOLUME TIAP 1s ================//
         handler.post(stayVolume)
@@ -205,6 +216,14 @@ class AssigmentForm : AppCompatActivity() {
 
         /*================== AMBIL WEB VIEW & SETTINGS WEB VIEW ================*/
         webView = findViewById<WebView>(R.id.formView)
+
+        //======================= MEMATIKAN AUTOFILL ===========================//
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            webView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+        }
+        webView.settings.saveFormData = false
+
+        //====================== MENGIJINKAN ZOOM =============================//
         webView.settings.apply {
             supportZoom()
             builtInZoomControls = true
@@ -221,7 +240,7 @@ class AssigmentForm : AppCompatActivity() {
                 return activity?.let {
                     val builder = MaterialAlertDialogBuilder(it)
                     builder.setTitle("MOHON DIBACA!!").setMessage(
-                            """
+                        """
                             1. Pastikan Internet dan Baterai dalam kondisi cukup.
                             2. Membuka Layar belah atau aplikasi mengambang akan terdeteksi.
                             3. Melakukan pelanggaran lebih dari 3x akan dikeluarkan dari Ujian dan memicu Alarm.
@@ -229,13 +248,13 @@ class AssigmentForm : AppCompatActivity() {
                             5. Jika keluar dari aplikasi karena HP crash, silakan masuk dengan Token Yang sama.
                             6. Kerjakan Ujian dengan teliti.
                         """.trimIndent()
-                        ).setPositiveButton("OK") { dialog, which ->
-                            // MUNCULKAN UJIAN
-                            loadWeb()
-                            // PENGECEKAN LOCK TASK
-                            handler.postDelayed({ checkLocked() }, 1000)
-                            // USER MELANJUTKAN UJIAN
-                        }
+                    ).setPositiveButton("OK") { dialog, which ->
+                        // MUNCULKAN UJIAN
+                        loadWeb()
+                        // PENGECEKAN LOCK TASK
+                        handler.postDelayed({ checkLocked() }, 1000)
+                        // USER MELANJUTKAN UJIAN
+                    }
                     builder.create()
                 } ?: throw IllegalStateException("Silakan pilih jawaban anda!")
             }
@@ -252,9 +271,9 @@ class AssigmentForm : AppCompatActivity() {
 
 
         //=================== DISABLE/HIDE OVERLAY =======================//
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            window.setHideOverlayWindows(true)
-        }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    window.setHideOverlayWindows(true)
+                }
         //============== END DISABLE/HIDE OVERLAY =======================//
 
 
@@ -369,7 +388,6 @@ class AssigmentForm : AppCompatActivity() {
     }
     //======END======//
 
-
     //================== FUNCTION PEMUTARAN ALERT ======================//
     fun alert() {
         mediaPlayer?.release()
@@ -414,16 +432,21 @@ class AssigmentForm : AppCompatActivity() {
 
     //==========LOADED WEB VIEW FORM=========//
     fun loadWeb() {
+        interDialog = true
+
+        //============AGAR BISA MENAMPILKAN WEB===========//
+        // Pengaturan dan WebViewClient dipasang SEBELUM loadUrl, supaya halaman
+        // pertama sudah memakai JavaScript dan tetap dibuka di dalam aplikasi
+        // (tidak terlempar ke Chrome).
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true/* CEGAH KELUAR KE CHROME/BROWSER */
+        webView.webViewClient = WebViewClient()
+
         url?.let { urlUjian ->
             webView.loadUrl(urlUjian)
             txtGuru.text = guruName
             txtMapel.text = mapel
         }
-
-        //============AGAR BISA MENAMPILKAN WEB===========//
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true/* CEGAH KELUAR KE CHROME/BROWSER */
-        webView.webViewClient = WebViewClient()
     }
     //======END======//
 
@@ -481,6 +504,7 @@ class AssigmentForm : AppCompatActivity() {
     fun showWarningFirst() {
         if (dialogShow) return
         dialogShow = true
+        interDialog = true
 
         MaterialAlertDialogBuilder(this).setTitle("PERINGATAN")
             .setMessage("Silakan aktifkan Kunci Layar/Pin Aplikasi yang muncul untuk melanjutkan ujian")
@@ -497,6 +521,7 @@ class AssigmentForm : AppCompatActivity() {
     fun showWarningSecond() {
         if (dialogShow) return
         dialogShow = true
+        interDialog = true
 
         MaterialAlertDialogBuilder(this).setTitle("PERINGATAN")
             .setMessage("Anda telah berusaha membuka kunci aplikasi, mohon jangan di ulangi lagi silakan login kembali untuk melanjutkan ujian")

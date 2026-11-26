@@ -1,92 +1,200 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
-    android:padding="15dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#F2F9FF"
     android:orientation="vertical"
     tools:context=".scan_page">
 
+    <!-- Bagian Atas: Area Logo & Identitas Aplikasi -->
     <LinearLayout
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="10dp"
-        android:layout_weight="1"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="0.85"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
         <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="150dp"
-            android:src="@drawable/exmob_icon"/>
+            android:layout_width="160dp"
+            android:layout_height="130dp"
+            android:contentDescription="Logo Aplikasi"
+            android:scaleType="fitCenter"
+            android:src="@drawable/exmob_icon" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Exam Mobile Safe System"
+            android:textColor="#163A63"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Siapkan kode atau QR Code ujian"
+            android:textColor="#5B7898"
+            android:textSize="13sp" />
     </LinearLayout>
 
-<!--    SEMENTARA LAYOUT WEIGHT DI ISI 2 DULU HARUSNYA 1.3-->
+    <!-- Bagian Bawah: Panel Form dengan Gradasi #31DCFF -> #4C79AF -->
     <LinearLayout
         android:id="@+id/layout_form"
-        android:padding="20dp"
-        android:layout_weight="1.3"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:background="@drawable/bg_gradient_blue"
-        android:orientation="vertical">
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="24dp">
+
+        <!-- Aksen Garis Handle -->
+        <View
+            android:layout_width="42dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="20dp"
+            android:background="#77FFFFFF" />
+
         <TextView
-            android:textSize="22sp"
-            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:shadowColor="#260F172A"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="3"
             android:text="Masukan Kode Ujian"
-            android:textColor="#FFFFFF"/>
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
         <TextView
-            android:textSize="15sp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Masukan kode ujian untuk memulai"
-            android:textColor="#FFFFFF"/>
+            android:layout_marginTop="4dp"
+            android:text="Ketik kode akses dari pengawas untuk memulai"
+            android:textColor="#F0F9FF"
+            android:textSize="14sp" />
+
+        <!-- Baris Input Kode + Tombol Start -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="22dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
+
             <EditText
                 android:id="@+id/txtKodeUjian"
-                android:autofillHints="name"
-                android:layout_weight="2.5"
-                android:drawableStart="@drawable/book_24"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
                 android:layout_width="0dp"
-                android:hint="Masukan kode"
-                android:background="@drawable/form_kode"/>
-            <RelativeLayout
-                android:layout_width="15dp"
-                android:layout_height="match_parent"/>
-           <Button
-               android:id="@+id/btnCari"
-               android:layout_weight="1"
-               android:layout_height="wrap_content"
-               android:layout_width="0dp"
-               android:text="Start"
-               android:drawableStart="@drawable/outline_arrow_right_alt_24"
-               android:backgroundTint="#00569B"/>
+                android:layout_height="52dp"
+                android:layout_weight="2.2"
+                android:autofillHints="name"
+                android:background="@drawable/form_kode"
+                android:drawableStart="@drawable/book_24"
+                android:drawablePadding="10dp"
+                android:drawableTint="#4C79AF"
+                android:hint="Masukan kode..."
+                android:imeOptions="actionGo"
+                android:inputType="textCapCharacters"
+                android:maxLines="1"
+                android:paddingHorizontal="14dp"
+                android:textColor="#163A63"
+                android:textColorHint="#8FA6C0"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/btnCari"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:backgroundTint="#FFFFFF"
+                android:drawableEnd="@drawable/outline_arrow_right_alt_24"
+                android:drawableTint="#2B5482"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingHorizontal="12dp"
+                android:text="Start"
+                android:textAllCaps="false"
+                android:textColor="#2B5482"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:cornerRadius="120dp" />
         </LinearLayout>
 
-        <RelativeLayout
+        <!-- Pemisah Visual "atau scan kartu" -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="20dp"/>
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="20dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#4DFFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:text="atau gunakan metode lain"
+                android:textColor="#F0F9FF"
+                android:textSize="12sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#4DFFFFFF" />
+        </LinearLayout>
+
+        <!-- Tombol Utama: Scan QR (Deep Navy agar kontras di atas gradasi terang) -->
         <Button
             android:id="@+id/btnScan"
-            android:drawableStart="@drawable/baseline_qr_code_scanner_24"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="Scan Kode"
-            android:backgroundTint="#00569B"/>
+            android:layout_height="54dp"
+            android:backgroundTint="#163A63"
+            android:drawableStart="@drawable/baseline_qr_code_scanner_24"
+            android:drawablePadding="12dp"
+            android:drawableTint="#FFFFFF"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingHorizontal="20dp"
+            android:text="Scan Kode QR"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:cornerRadius="14dp" />
+
+        <!-- Tombol Sekunder: Pilih Gambar -->
         <Button
             android:id="@+id/btnPickImage"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="Pilih Gambar"
-            android:backgroundTint="#00569B"/>
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="#26163A63"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Pilih Gambar dari Galeri"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            app:cornerRadius="14dp"
+            app:strokeColor="#99FFFFFF"
+            app:strokeWidth="1dp" />
+
     </LinearLayout>
 </LinearLayout>
